@@ -25,6 +25,7 @@ class NSASimulator:
     BASE_URL = "https://api.gotinder.com/"
 
     def __init__(self, facebook_auth_filename=SECRETS_FILENAME):
+        self.sesh = requests.Session()
 
         # Look I have no idea what these are I just copy/pasted
         # them from the API call my phone makes. If this makes
@@ -63,7 +64,7 @@ class NSASimulator:
         connected to your Facebook account sorry fam.
 
         """
-        response = requests.post(self.BASE_URL + "auth", data=self.fb_auth)
+        response = self.sesh.post(self.BASE_URL + "auth", data=self.fb_auth)
         if response.status_code == 200:
             self.headers["X-Auth-Token"] = response.json()["token"]
             print("Authenticated to Tinder 🔒🔥")
@@ -75,7 +76,7 @@ class NSASimulator:
     def _get(self, url):
         if not self.authed:
             self._auth()
-        response = requests.get(self.BASE_URL + url, headers=self.headers)
+        response = self.sesh.get(self.BASE_URL + url, headers=self.headers)
         print(response.text)
         return response
 
