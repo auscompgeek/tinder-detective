@@ -2,10 +2,11 @@
 <html>
 <head>
     <meta charset="utf-8">
+	<title>Some Tinder thing</title>
 
      <link rel="stylesheet" href="https://cdn.rawgit.com/twbs/bootstrap/v4-dev/dist/css/bootstrap.css" crossorigin="anonymous">
 
-     <link rel="stylesheet" href="../static/main.css">
+    <link rel="stylesheet" href="/static/main.css">
 </head>
 <body>
     <div class="container">
@@ -17,46 +18,89 @@
     </div>
 
     <section class="container">
-        {% for profile in profiles %}
+        {%- for profile in profiles %}
         <section class="profile">
             <section class="photos container">
-                {% for photo in profile.photos %}
-                    <img class="profile-photo" src="{{ photo.url }}"/>
-                {% endfor %}
+                {%- for photo in profile.photos %}
+				<img class="profile-photo" src="{{ photo.url }}">
+                {%- endfor %}
             </section>
 
             <div class="container">
-                <h3>{{ profile.name }}</h3>
+                <h3>{{ profile.full_name or profile.name }}</h3>
             </div>
 
             <div class="container">
               <div class="row">
                 <div class="col-sm-4">
-                    <p class="bio"> {{ profile.bio }}</p>
+					{% if "bio" in profile %}<p class="bio">{{ profile.bio|nl2br }}</p>{% endif -%}
+					<a href="/user/{{ profile._id }}">¶</a>
                 </div>
                 <div class="col-sm-4">
-                    <p class="misc"> Last online: {{ profile.ping_time }}</p>
-                    <p class="misc"> Birthday: {{ profile.birth_date }}</p>
-                    <p class="misc"> Distance away (miles): {{ profile.distance_mi}}</p>
-                    <p class="misc"> Jobs: {{ profile.jobs or None }}</p>
-                    <p class="misc"> Schools: {{ profile.schools or None }}</p>
+                    <p class="misc">Join time: {{ profile.join_time|humandate }}</p>
+					<p class="misc">
+					{%- if profile.birth_date_info == "fuzzy birthdate active, not displaying real birth_date" %}
+						Age: {{ profile.birth_date|yearssince }}
+					{%- else %}
+						Birthday: {{ profile.birth_date|humandate }} {{ "— " + profile.birth_date_info if profile.birth_date_info }}
+					{%- endif %}
+					</p>
+                    <p class="misc">Distance away (miles): {{ profile.distance_mi }}</p>
+					{% if profile.jobs %}<p class="misc">Jobs: {{ profile.jobs }}</p>{% endif %}
+					{% if profile.schools %}<p class="misc">Schools: {{ profile.schools|map("pagemagic")|join(", ") }}</p>{% endif %}
+					{%- if profile.instagram %}
+					<p class="misc">Instagram: <a href="https://www.instagram.com/{{ profile.instagram.username }}">@{{ profile.instagram.username }}</a> ({{ profile.instagram.media_count }} photos)
+					{%- endif %}
                 </div>
                 <div class="col-sm-4">
-                    <p class="misc"> Connection count: {{ profile.connection_count }}</p>
-                    <p class="misc">Common like count: {{ profile.common_like_count }}</p>
-                    <p class="misc"> Common friend count: {{ profile.common_friend_count }}</p>
-                    <p class="misc"> Common likes: {{ profile.common_likes or None}}</p>
-                    <p class="misc"> Badges: {{ profile.badges or None }}</p>
+					<p class="misc">Common friends: {% if "common_connections" not in profile %}{{ profile.common_friend_count }}/{% endif %}{{ profile.connection_count }}
+					{%- if (profile.common_friend_count or profile.common_connections|length) > 5 %}<details>{% endif %}
+						<ul>
+							{%- if profile.common_friends %}
+							{%- for f in profile.common_friends %}
+							<li><a href="https://www.facebook.com/{{f}}">{% if f in friends %}{{ friends[f].name }}{% else %}{{ f }}{% endif %}</a></li>
+							{%- endfor %}
+							{%- elif profile.common_connections %}
+							{%- for c in profile.common_connections %}
+							<li>{{ c|pagemagic }} ({{ c.degree }})</li>
+							{%- endfor %}
+							{%- endif %}
+						</ul>
+					{%- if (profile.common_friend_count or profile.common_connections|length) > 5 %}</details>{% endif %}
+					</p>
+					{%- if profile.common_likes %}
+					<p class="misc">Common likes: {{ profile.common_like_count }}
+					{%- if profile.common_like_count > 5 %}<details>{% endif %}
+						<ul>
+							{%- for l in profile.common_likes %}
+							<li><a href="https://www.facebook.com/{{l}}">{{ interests[l] }}</a></li>
+							{%- endfor %}
+						</ul>
+					{%- if profile.common_like_count > 5 %}</details>{% endif %}
+					</p>
+					{%- elif profile.common_interests %}
+					<p class="misc">Common interests:
+					{%- if profile.common_interests|length > 5 %}<details>{% endif %}
+						<ul>
+							{%- for i in profile.common_interests %}
+							<li>{{ i|pagemagic }}</li>
+							{%- endfor %}
+						</ul>
+					{%- if profile.common_interests|length > 5 %}</details>{% endif %}
+					</p>
+					{%- endif %}
+					{% if profile.badges %}<p class="misc">Badges: {{ profile.badges }}</p>{% endif %}
                 </div>
               </div>
           </div>
           <section class="buttons container">
-              <a href="{{ profile.like_url }}"><button class="btn btn-success">Swipe right</button></a>
-              <a href="{{ profile.pass_url }}"><button class="btn btn-danger">Swipe left</button></a>
+              <a href="/api/pass/{{ profile._id }}"><button class="btn btn-danger">Swipe left (pass)</button></a>
+              <a href="/user/{{ profile._id }}/superlike"><button class="btn btn-info">Super like</button></a>
+              <a href="/api/like/{{ profile._id }}"><button class="btn btn-success">Swipe right (like)</button></a>
           </section>
 
         </section>
-        {% endfor %}
+        {%- endfor %}
     </section>
 
 
